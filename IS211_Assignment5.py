@@ -1,7 +1,7 @@
 import csv
 import urllib
 import argparse
-import os
+
 
 class Queue:
     def __init__(self):
@@ -16,13 +16,11 @@ class Queue:
     def dequeue(self):
         return self.items.pop()
 
-    def size(self):
-        return len(self.items)
 
 class Server:
 
-    def __init__(self, ppm):
-        self.page_rate = ppm
+    def __init__(self, host_name=None):
+        self.host_name = host_name
         self.current_task = None
         self.time_remaining = 0
 
@@ -40,63 +38,48 @@ class Server:
 
     def start_next(self, new_task):
         self.current_task = new_task
-        self.time_remaining = new_task.get_pages() * 60 / self.page_rate
+        self.time_remaining = new_task.get_req()
 
 class Request:
 
-    def __init__(self, time):
+    def __init__(self, time, seconds):
         self.timestamp = time
-        self.pages = random.randrange(1, 21)
+        self.seconds = seconds
 
-    def get_stamp(self):
-        return self.timestamp
-
-    def get_pages(self):
-        return self.pages
+    def get_req(self):
+        return self.seconds
 
     def wait_time(self, current_time):
         return current_time - self.timestamp
 
 def simulateOneServer(filename):
+    taskQ = Queue()
     wait_time = []
-    request_dict = {}
+    server_req = Server()
 
-    for request in filename:
-        n_time = int(request[0])
-        Queue().enqueue(request)
+    for i in range(filename):
 
-        if n_time in request_dict:
-            request_dict[n_time].append(request)
-        else:
-            request_dict[n_time] = [request]
+        if server_req.tick():
+            taskQ.enqueue()
 
-    for time_in_second in request_dict:
-        for req in request_dict[time_in_second]:
-            Request(req)
-            Queue().dequeue()
+        if (not server_req.busy()) and (not taskQ.is_empty()):
+            next_task = taskQ.dequeue()
+            wait_time.append(next_task.wait_time(i))
 
-        if (not Server().busy()) and (not Queue().isEmpty()):
-            nextreq = Request(Queue().dequeue())
-            wait_time.append(nextreq.wait_Time(nextreq))
-            #breaks after this line
-            Server().startNext(nextreq)
 
-        Server().tick()
 
 
 
 
 
 def main():
-    q = Queue()
-    q.enqueue('cat')
-    print(q.size())
-    q.enqueue('dogs')
-    print(q.size())
-    print(q.items)
-    q.dequeue()
-    print('dequeue removes the first item entered in the stack')
-    print(q.items)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--file')
+    parser.add_argument('--servers', default=1)
+    args = parser.parse_args()
+
+    if args.file:
+
 
 
 if __name__=="__main__":
